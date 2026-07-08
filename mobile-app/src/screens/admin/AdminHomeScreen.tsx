@@ -20,10 +20,12 @@ export default function AdminHomeScreen() {
     async function loadStats() {
       try {
         setLoading(true);
-        const data = await getIssuancesApi();
-        const active = data.filter((x) => x.status === 'ACTIVE').length;
-        const revoked = data.filter((x) => x.status === 'REVOKED').length;
-        setStats({ total: data.length, active, revoked });
+        const data = await getIssuancesApi(1, 1);
+        setStats({ 
+          total: data.total, 
+          active: data.activeCount, 
+          revoked: data.revokedCount 
+        });
       } catch (err) {
         console.error('Failed to load stats:', err);
       } finally {

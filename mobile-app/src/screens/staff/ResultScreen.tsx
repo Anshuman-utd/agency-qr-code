@@ -4,6 +4,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StaffScanStackParamList } from '../../navigation/StaffTabs';
 import { verifyTokenApi, VerifyResponse } from '../../services/verify';
+import { API_BASE_URL } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 
 type RouteProps = RouteProp<StaffScanStackParamList, 'Result'>;
@@ -26,7 +27,9 @@ export default function ResultScreen() {
         setResult(data);
       } catch (err: any) {
         console.error(err);
-        setError(err.response?.data?.message || 'Failed to verify QR. Check backend connection.');
+        const msg = err.response?.data?.message || 
+          `Failed to verify QR. Unable to reach backend at: "${API_BASE_URL}". Ensure the backend is running and your computer and phone are on the same Wi-Fi.`;
+        setError(msg);
       } finally {
         setLoading(false);
       }

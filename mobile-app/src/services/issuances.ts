@@ -10,13 +10,25 @@ export interface QRIssuance {
   labelText: string | null;
 }
 
+export interface PaginatedIssuances {
+  items: QRIssuance[];
+  page: number;
+  limit: number;
+  total: number;
+  activeCount: number;
+  revokedCount: number;
+  totalPages: number;
+}
+
 export async function createBatchApi(count: number, labelText?: string): Promise<QRIssuance[]> {
   const response = await api.post<QRIssuance[]>('/issuances/batch', { count, labelText });
   return response.data;
 }
 
-export async function getIssuancesApi(): Promise<QRIssuance[]> {
-  const response = await api.get<QRIssuance[]>('/issuances');
+export async function getIssuancesApi(page?: number, limit?: number, search?: string): Promise<PaginatedIssuances> {
+  const response = await api.get<PaginatedIssuances>('/issuances', {
+    params: { page, limit, search }
+  });
   return response.data;
 }
 

@@ -18,31 +18,61 @@ export default function IssuanceListScreen() {
   const [issuances, setIssuances] = useState<QRIssuance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const isFocused = useIsFocused();
 
-  const loadIssuances = async (showLoader = true) => {
-    if (showLoader) setLoading(true);
+  const loadIssuances = async (pageToLoad: number, showLoader = true) => {
+    if (pageToLoad === 1) {
+      if (showLoader) setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    
     try {
-      const data = await getIssuancesApi();
-      setIssuances(data);
+      const data = await getIssuancesApi(pageToLoad, 20);
+      if (pageToLoad === 1) {
+        setIssuances(data.items);
+      } else {
+        setIssuances((prev) => [...prev, ...data.items]);
+      }
+      setPage(data.page);
+      setTotalPages(data.totalPages);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to retrieve QR issuances.');
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
     if (isFocused) {
-      loadIssuances(true);
+      loadIssuances(1, true);
     }
   }, [isFocused]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadIssuances(false);
+    loadIssuances(1, false);
+  };
+
+  const handleLoadMore = () => {
+    if (page < totalPages && !loadingMore) {
+      loadIssuances(page + 1, false);
+    }
+  };
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={{ paddingVertical: 20 }}>
+        <ActivityIndicator size="small" color="#0F172A" />
+      </View>
+    );
   };
 
   const handleRevoke = (item: QRIssuance) => {
@@ -125,6 +155,9 @@ export default function IssuanceListScreen() {
           renderItem={renderItem}
           refreshing={refreshing}
           onRefresh={handleRefresh}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.2}
+          ListFooterComponent={renderFooter}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>

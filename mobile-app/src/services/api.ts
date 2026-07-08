@@ -1,13 +1,19 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-/**
- * Configure API Base URL:
- * - iOS Simulator: 'http://localhost:3000'
- * - Android Emulator: 'http://10.0.2.2:3000'
- * - Physical Device (Expo Go): 'http://<YOUR_COMPUTER_LOCAL_IP>:3000' (e.g. 'http://192.168.1.50:3000')
- */
-export const API_BASE_URL = 'http://localhost:3000';
+const apiBase = process.env.EXPO_PUBLIC_API_URL;
+
+if (!apiBase) {
+  const errMsg = 
+    'CRITICAL ERROR: EXPO_PUBLIC_API_URL environment variable is missing!\n' +
+    'Please create a ".env" file in the "mobile-app/" directory and configure EXPO_PUBLIC_API_URL.\n' +
+    'Example for physical device: EXPO_PUBLIC_API_URL=http://192.168.1.50:3000\n' +
+    'Example for local simulator: EXPO_PUBLIC_API_URL=http://localhost:3000';
+  console.error(errMsg);
+  throw new Error(errMsg);
+}
+
+export const API_BASE_URL = apiBase;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

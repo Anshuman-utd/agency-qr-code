@@ -17,7 +17,7 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
-const prisma_1 = require("../generated/prisma");
+const client_1 = require("@prisma/client");
 const issuances_service_1 = require("./issuances.service");
 const create_batch_dto_1 = require("./dto/create-batch.dto");
 let IssuancesController = class IssuancesController {
@@ -29,9 +29,11 @@ let IssuancesController = class IssuancesController {
         const user = req.user;
         return this.issuancesService.createBatch(user.agencyId, user.id, createBatchDto);
     }
-    async findAll(req) {
+    async findAll(req, page, limit, search) {
         const user = req.user;
-        return this.issuancesService.findAll(user.agencyId);
+        const pageNum = page ? parseInt(page, 10) : 1;
+        const limitNum = limit ? parseInt(limit, 10) : 20;
+        return this.issuancesService.findAll(user.agencyId, isNaN(pageNum) ? 1 : pageNum, isNaN(limitNum) ? 20 : limitNum, search);
     }
     async revoke(id, req) {
         const user = req.user;
@@ -50,8 +52,11 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __param(3, (0, common_1.Query)('search')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String, String, String]),
     __metadata("design:returntype", Promise)
 ], IssuancesController.prototype, "findAll", null);
 __decorate([
@@ -65,7 +70,7 @@ __decorate([
 exports.IssuancesController = IssuancesController = __decorate([
     (0, common_1.Controller)('issuances'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(prisma_1.Role.ADMIN),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __metadata("design:paramtypes", [issuances_service_1.IssuancesService])
 ], IssuancesController);
 //# sourceMappingURL=issuances.controller.js.map

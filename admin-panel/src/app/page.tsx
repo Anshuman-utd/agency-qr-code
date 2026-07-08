@@ -40,6 +40,15 @@ export default function DashboardPage() {
   const [issuances, setIssuances] = useState<QRIssuance[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasLoadedInit, setHasLoadedInit] = useState(false);
+
+  // Stats states
+  const [totalCodes, setTotalCodes] = useState(0);
+  const [activeCodes, setActiveCodes] = useState(0);
+  const [revokedCodes, setRevokedCodes] = useState(0);
   
   // Selection for printing
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -68,11 +77,22 @@ export default function DashboardPage() {
     setAgency(JSON.parse(savedAgency));
   }, [router]);
 
-  const loadData = async (showLoader = true) => {
+  const loadData = async (showLoader = true, pageToLoad = page, searchVal = searchQuery) => {
     if (showLoader) setLoading(true);
     try {
-      const res = await api.get('/issuances');
-      setIssuances(res.data);
+      const res = await api.get('/issuances', {
+        params: {
+          page: pageToLoad,
+          limit,
+          search: searchVal.trim() || undefined,
+        }
+      });
+      setIssuances(res.data.items);
+      setPage(res.data.page);
+      setTotalPages(res.data.totalPages);
+      setTotalCodes(res.data.total);
+      setActiveCodes(res.data.activeCount);
+      setRevokedCodes(res.data.revokedCount);
     } catch (err) {
       console.error('Failed to load issuances:', err);
     } finally {
@@ -81,10 +101,21 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (token) {
-      loadData();
+    if (token && !hasLoadedInit) {
+      loadData(true, 1, '');
+      setHasLoadedInit(true);
     }
-  }, [token]);
+  }, [token, hasLoadedInit]);
+
+  useEffect(() => {
+    if (token && hasLoadedInit) {
+      const delayDebounceFn = setTimeout(() => {
+        loadData(false, 1, searchQuery);
+      }, 300);
+
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [searchQuery, token, hasLoadedInit]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -154,21 +185,8 @@ export default function DashboardPage() {
   };
 
   // Filter calculations
-  const filteredIssuances = issuances.filter((x) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      x.token.toLowerCase().includes(query) ||
-      (x.labelText && x.labelText.toLowerCase().includes(query))
-    );
-  });
-
+  const filteredIssuances = issuances;
   const activeFilteredIssuances = filteredIssuances.filter((x) => x.status === 'ACTIVE');
-
-  // Stats calculations
-  const totalCodes = issuances.length;
-  const activeCodes = issuances.filter((x) => x.status === 'ACTIVE').length;
-  const revokedCodes = issuances.filter((x) => x.status === 'REVOKED').length;
-
   const itemsToPrint = issuances.filter((x) => selectedIds.has(x.id) && x.status === 'ACTIVE');
 
   if (loading && !token) {
@@ -421,6 +439,34 @@ export default function DashboardPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+            
+            {/* Pagination Controls */}
+            <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 print:hidden">
+              <div className="text-xs text-slate-500 font-semibold">
+                Showing {totalCodes === 0 ? 0 : (page - 1) * limit + 1} to {Math.min(page * limit, totalCodes)} of {totalCodes} tokens
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => loadData(false, page - 1)}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-bold text-slate-700">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => loadData(false, page + 1)}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed transition"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </section>
         </div>

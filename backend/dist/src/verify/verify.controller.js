@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const verify_service_1 = require("./verify.service");
 const verify_dto_1 = require("./dto/verify.dto");
+const throttler_1 = require("@nestjs/throttler");
 let VerifyController = class VerifyController {
     verifyService;
     constructor(verifyService) {
@@ -29,6 +30,7 @@ let VerifyController = class VerifyController {
 };
 exports.VerifyController = VerifyController;
 __decorate([
+    (0, throttler_1.Throttle)({ default: { limit: 60, ttl: 60000 } }),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),

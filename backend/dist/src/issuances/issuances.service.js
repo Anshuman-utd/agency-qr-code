@@ -13,7 +13,7 @@ exports.IssuancesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const crypto_1 = require("crypto");
-const prisma_1 = require("../generated/prisma");
+const client_1 = require("@prisma/client");
 let IssuancesService = class IssuancesService {
     prisma;
     constructor(prisma) {
@@ -25,7 +25,7 @@ let IssuancesService = class IssuancesService {
             tokensData.push({
                 agencyId,
                 token: `AGQ_${(0, crypto_1.randomUUID)()}`,
-                status: prisma_1.QrStatus.ACTIVE,
+                status: client_1.QrStatus.ACTIVE,
                 createdBy: createdById,
                 labelText: dto.labelText || null,
             });
@@ -43,13 +43,39 @@ let IssuancesService = class IssuancesService {
             },
         });
     }
-    async findAll(agencyId) {
-        return this.prisma.qRIssuance.findMany({
-            where: { agencyId },
-            orderBy: {
-                issuedAt: 'desc',
-            },
-        });
+    async findAll(agencyId, page = 1, limit = 20, search) {
+        const sanitizedPage = Math.max(1, page);
+        const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
+        const skip = (sanitizedPage - 1) * sanitizedLimit;
+        const where = { agencyId };
+        if (search && search.trim()) {
+            where.OR = [
+                { token: { contains: search.trim(), mode: 'insensitive' } },
+                { labelText: { contains: search.trim(), mode: 'insensitive' } },
+            ];
+        }
+        const [items, total, activeCount, revokedCount] = await Promise.all([
+            this.prisma.qRIssuance.findMany({
+                where,
+                orderBy: {
+                    issuedAt: 'desc',
+                },
+                skip,
+                take: sanitizedLimit,
+            }),
+            this.prisma.qRIssuance.count({ where }),
+            this.prisma.qRIssuance.count({ where: { ...where, status: 'ACTIVE' } }),
+            this.prisma.qRIssuance.count({ where: { ...where, status: 'REVOKED' } }),
+        ]);
+        return {
+            items,
+            page: sanitizedPage,
+            limit: sanitizedLimit,
+            total,
+            activeCount,
+            revokedCount,
+            totalPages: Math.ceil(total / sanitizedLimit),
+        };
     }
     async revoke(agencyId, id) {
         const issuance = await this.prisma.qRIssuance.findUnique({
@@ -64,7 +90,7 @@ let IssuancesService = class IssuancesService {
         return this.prisma.qRIssuance.update({
             where: { id },
             data: {
-                status: prisma_1.QrStatus.REVOKED,
+                status: client_1.QrStatus.REVOKED,
             },
         });
     }

@@ -33,13 +33,13 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-const prisma_1 = require("../src/generated/prisma");
+const client_1 = require("@prisma/client");
 const adapter_pg_1 = require("@prisma/adapter-pg");
 const pg_1 = require("pg");
 const bcrypt = __importStar(require("bcrypt"));
 const pool = new pg_1.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new adapter_pg_1.PrismaPg(pool);
-const prisma = new prisma_1.PrismaClient({ adapter });
+const prisma = new client_1.PrismaClient({ adapter });
 async function main() {
     console.log('Seeding database...');
     await prisma.qRIssuance.deleteMany({});

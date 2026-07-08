@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { loginApi } from '../../services/auth';
 import { useAuth } from '../../store/authStore';
+import { API_BASE_URL } from '../../services/api';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -32,7 +33,8 @@ export default function LoginScreen() {
       await login(response.accessToken, response.user, response.agency);
     } catch (error: any) {
       console.error(error);
-      const msg = error.response?.data?.message || 'Failed to connect to server. Check API URL.';
+      const msg = error.response?.data?.message || 
+        `Failed to connect to backend at: "${API_BASE_URL}". Ensure the server is online and that your computer and mobile phone share the same network.`;
       Alert.alert('Login Failed', msg);
     } finally {
       setLoading(false);

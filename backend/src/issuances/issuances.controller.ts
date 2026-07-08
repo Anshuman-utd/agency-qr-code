@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { Role } from '../generated/prisma';
+import { Role } from '@prisma/client';
 import { IssuancesService } from './issuances.service';
 import { CreateBatchDto } from './dto/create-batch.dto';
 
@@ -19,9 +19,22 @@ export class IssuancesController {
   }
 
   @Get()
-  async findAll(@Request() req: any) {
+  async findAll(
+    @Request() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
     const user = req.user;
-    return this.issuancesService.findAll(user.agencyId);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    
+    return this.issuancesService.findAll(
+      user.agencyId, 
+      isNaN(pageNum) ? 1 : pageNum, 
+      isNaN(limitNum) ? 20 : limitNum, 
+      search
+    );
   }
 
   @Patch(':id/revoke')

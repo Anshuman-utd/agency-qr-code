@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBatchDto } from './dto/create-batch.dto';
 import { randomUUID } from 'crypto';
-import { QrStatus } from '../generated/prisma';
+import { QrStatus } from '@prisma/client';
 
 @Injectable()
 export class IssuancesService {
@@ -35,13 +35,42 @@ export class IssuancesService {
     });
   }
 
-  async findAll(agencyId: string) {
-    return this.prisma.qRIssuance.findMany({
-      where: { agencyId },
-      orderBy: {
-        issuedAt: 'desc',
-      },
-    });
+  async findAll(agencyId: string, page: number = 1, limit: number = 20, search?: string) {
+    const sanitizedPage = Math.max(1, page);
+    const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
+    const skip = (sanitizedPage - 1) * sanitizedLimit;
+
+    const where: any = { agencyId };
+    if (search && search.trim()) {
+      where.OR = [
+        { token: { contains: search.trim(), mode: 'insensitive' } },
+        { labelText: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total, activeCount, revokedCount] = await Promise.all([
+      this.prisma.qRIssuance.findMany({
+        where,
+        orderBy: {
+          issuedAt: 'desc',
+        },
+        skip,
+        take: sanitizedLimit,
+      }),
+      this.prisma.qRIssuance.count({ where }),
+      this.prisma.qRIssuance.count({ where: { ...where, status: 'ACTIVE' } }),
+      this.prisma.qRIssuance.count({ where: { ...where, status: 'REVOKED' } }),
+    ]);
+
+    return {
+      items,
+      page: sanitizedPage,
+      limit: sanitizedLimit,
+      total,
+      activeCount,
+      revokedCount,
+      totalPages: Math.ceil(total / sanitizedLimit),
+    };
   }
 
   async revoke(agencyId: string, id: string) {

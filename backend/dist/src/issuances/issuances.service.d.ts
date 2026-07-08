@@ -7,25 +7,33 @@ export declare class IssuancesService {
         id: string;
         agencyId: string;
         token: string;
-        status: import("../generated/prisma").$Enums.QrStatus;
+        status: import("@prisma/client").$Enums.QrStatus;
         issuedAt: Date;
         createdBy: string | null;
         labelText: string | null;
     }[]>;
-    findAll(agencyId: string): Promise<{
-        id: string;
-        agencyId: string;
-        token: string;
-        status: import("../generated/prisma").$Enums.QrStatus;
-        issuedAt: Date;
-        createdBy: string | null;
-        labelText: string | null;
-    }[]>;
+    findAll(agencyId: string, page?: number, limit?: number, search?: string): Promise<{
+        items: {
+            id: string;
+            agencyId: string;
+            token: string;
+            status: import("@prisma/client").$Enums.QrStatus;
+            issuedAt: Date;
+            createdBy: string | null;
+            labelText: string | null;
+        }[];
+        page: number;
+        limit: number;
+        total: number;
+        activeCount: number;
+        revokedCount: number;
+        totalPages: number;
+    }>;
     revoke(agencyId: string, id: string): Promise<{
         id: string;
         agencyId: string;
         token: string;
-        status: import("../generated/prisma").$Enums.QrStatus;
+        status: import("@prisma/client").$Enums.QrStatus;
         issuedAt: Date;
         createdBy: string | null;
         labelText: string | null;
